@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import pandas as pd
 from supabase import create_client
@@ -17,6 +18,12 @@ def run_load(
     )
 
     df   = pd.read_csv(csv_path)
+    df['batch_id'] = datetime.now().isoformat()
+
+    # convert any datetime/Timestamp columns to ISO strings so they are JSON-serialisable
+    for col in df.select_dtypes(include=["datetime", "datetimetz"]).columns:
+        df[col] = df[col].dt.strftime("%Y-%m-%dT%H:%M:%S")
+
     data = df.to_dict(orient="records")
 
     for i in range(0, len(data), batch_size):

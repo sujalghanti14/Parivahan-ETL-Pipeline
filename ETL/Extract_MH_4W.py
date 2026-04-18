@@ -1,45 +1,13 @@
-# ============================================================
-# 1_Extract_MH_4W.py
-# ------------------------------------------------------------
-# Downloads "Maker Wise Fuel Data" Excel reports from the
-# Vahan dashboard for every RTO in Maharashtra.
-#
-# The main entry point is the run_extract() function below.
-# It can also be run directly: python 1_Extract_MH_4W.py
-# ============================================================
-
-# Selenium is a library that controls a real web browser automatically
 from selenium import webdriver
-from selenium.webdriver.common.by import By                          # Lets us find elements by ID, XPATH, etc.
-from selenium.webdriver.support.ui import WebDriverWait              # Waits until an element appears/disappears
-from selenium.webdriver.support import expected_conditions as EC     # Conditions to wait for (e.g. clickable, visible)
-
-# Playwright is another browser automation library — used here only to detect dynamic element IDs on page load
+from selenium.webdriver.common.by import By                         
+from selenium.webdriver.support.ui import WebDriverWait             
+from selenium.webdriver.support import expected_conditions as EC    
 from playwright.sync_api import sync_playwright
+import time      
+import pandas as pd  
+import os            
+import re           
 
-import time       # Used to pause the script (e.g. time.sleep(2) = wait 2 seconds)
-import pandas as pd  # Used to read the downloaded Excel file
-import os            # Used to rename/move files
-import re            # Used to clean invalid characters from file names
-
-
-# ============================================================
-# MAIN FUNCTION: run_extract
-# ============================================================
-# This function does the entire Extract step:
-#   1. Opens a browser and navigates to the Vahan portal
-#   2. Selects Maharashtra state and sets Y-Axis = Maker, X-Axis = Fuel
-#   3. Loops through every RTO in the list
-#   4. For each RTO, selects vehicle categories and loops through months
-#   5. Downloads the Excel report for each (RTO × Month) combination
-#   6. Renames and saves each file to the Data/ folder
-#
-# Args:
-#   rto_list  — list of RTO names to download data for (uses full list by default)
-#   months    — list of month codes to download (e.g. ["JAN", "FEB", "MAR"])
-#   download_path — where the browser saves downloaded files (usually Downloads folder)
-#   output_folder — where renamed Excel files should be saved (the Data/ folder)
-# ============================================================
 
 def run_extract(
     rto_list=None,
@@ -47,11 +15,7 @@ def run_extract(
     download_path=r"C:\Users\sujal\Downloads\reportTable.xlsx",
     output_folder=r"C:\Users\sujal\Documents\Major Project\Project on System\Data"
 ):
-    # ----------------------------------------------------------
-    # DEFAULT: Full list of Maharashtra RTOs
-    # Each entry is the exact name as it appears in the dropdown
-    # on the Vahan portal (including the registration date in brackets)
-    # ----------------------------------------------------------
+  
     if rto_list is None:
         rto_list = [
 
@@ -123,14 +87,9 @@ def run_extract(
 
     # DEFAULT: months to download data for
     if months is None:
-        months = ["JAN", "FEB", "MAR", "APR"]
+        months = ["JAN", "FEB", "MAR"]
 
-    # ----------------------------------------------------------
     # PHASE 1: Use Playwright to read dynamic element IDs from the page.
-    # The Vahan portal generates dropdown/button IDs dynamically at runtime.
-    # We launch a quick Playwright browser, read those IDs, then close it.
-    # These IDs are then used by Selenium in Phase 2.
-    # ----------------------------------------------------------
     print("Phase 1: Detecting dynamic element IDs using Playwright...")
 
     with sync_playwright() as p:
@@ -159,17 +118,14 @@ def run_extract(
         refresh_button_id           = buttons.nth(0).get_attribute("id")    # The main refresh button
         vehicle_category_refresh_id = buttons.nth(1).get_attribute("id")    # The vehicle category refresh button
 
-        # Close the Playwright browser — we only needed it to read the IDs
         browser.close()
 
     print(f"  State dropdown ID       : {State_dropdown_id}")
     print(f"  Refresh button ID       : {refresh_button_id}")
     print(f"  Category refresh ID     : {vehicle_category_refresh_id}")
 
-    # ----------------------------------------------------------
     # PHASE 2: Use Selenium to actually interact with the page and
     # download the Excel files.
-    # ----------------------------------------------------------
     print("\nPhase 2: Starting Selenium browser for downloads...")
 
     # Open a Chrome browser window controlled by Selenium
@@ -202,10 +158,6 @@ def run_extract(
         # Wait for the download button to become clickable, then click it
         btn = wait.until(EC.element_to_be_clickable((By.ID, "groupingTable:xls")))
         btn.click()
-
-    # ----------------------------------------------------------
-    # SELECT STATE: Maharashtra
-    # ----------------------------------------------------------
 
     # Click the state dropdown to open it
     dropdown_state = wait.until(EC.element_to_be_clickable((By.ID, State_dropdown_id)))
@@ -370,11 +322,6 @@ def run_extract(
 
     print(f"\n✅ Extract complete. All files saved to: {output_folder}")
 
-
-# ============================================================
-# Entry point: allows running this script directly
-# e.g.  python 1_Extract_MH_4W.py
-# ============================================================
 
 if __name__ == "__main__":
     run_extract()

@@ -26,50 +26,14 @@ def convert_fuel_report(input_file: str, output_file: str = None):
 
     # ----------------------------------------------------------
     # STEP 1: Read ONLY the very first row of the Excel file.
-    # The first row contains a heading/title like:
-    #   "Maker Wise Fuel Data of AKLUJ - MH45 , Maharashtra (FEB,2026)"
-    # We need this title to extract the RTO name, month, and year.
-    # ----------------------------------------------------------
-
-    # Read just 1 row from Excel, with no header row treatment
-    # → header=None means don't assume any row is a column header
-    # → nrows=1 means stop after reading the first row
     raw = pd.read_excel(input_file, header=None, nrows=1)
-
-    # Get the value from row 0, column 0 (the very first cell)
-    # and make sure it's treated as text (a string)
     title = str(raw.iloc[0, 0])
 
     # ----------------------------------------------------------
     # STEP 2: Pull out the RTO name from the title text.
-    # The title always says "... of <RTO NAME> , Maharashtra ..."
-    #
-    # ⚠️ Problem with the old approach (splitting on ","):
-    #    Some RTO names CONTAIN a comma themselves, e.g.:
-    #      "DY REGIONAL TRANSPORT OFFICE, HINGOLI - MH38"
-    #    Splitting on the first "," would incorrectly give just:
-    #      "DY REGIONAL TRANSPORT OFFICE"  ← WRONG (truncated)
-    #
-    # ✅ Fix: Use a regex (pattern search) that finds everything
-    #    between the word "of" and ", Maharashtra".
-    #    This way, any commas that are PART of the RTO name are kept.
-    #
-    # Example matches:
-    #   "...of AKLUJ - MH45 , Maharashtra..."                   → "AKLUJ - MH45"
-    #   "...of DY REGIONAL TRANSPORT OFFICE, HINGOLI - MH38 , Maharashtra..." → "DY REGIONAL TRANSPORT OFFICE, HINGOLI - MH38"
-    # ----------------------------------------------------------
-
-    # re.search() scans the title for the first match of our pattern.
-    # Pattern explained:
-    #   \bof\s+   → the whole word "of" followed by one or more spaces
-    #   (.+?)     → capture everything that follows (as few chars as possible = non-greedy)
-    #   \s*,\s*   → a comma with optional spaces around it
-    #   Maharashtra → the literal word Maharashtra (marks the end of the RTO name)
     rto_match = re.search(r'\bof\s+(.+?)\s*,\s*Maharashtra', title, re.IGNORECASE)
 
     if rto_match:
-        # .group(1) → the first captured group = the full RTO name
-        # .strip()  → remove any leftover spaces at either end
         rto = rto_match.group(1).strip()
     else:
         # If the pattern wasn't found at all, use "UNKNOWN" as a safe fallback
@@ -80,12 +44,6 @@ def convert_fuel_report(input_file: str, output_file: str = None):
 
     # ----------------------------------------------------------
     # STEP 3: Read the actual DATA from the Excel file.
-    # The first 3 rows are title/header rows we don't need.
-    # Row 4 (index 3) contains the actual column names.
-    # ----------------------------------------------------------
-
-    # skiprows=3 → skip the first 3 rows (they are title/header rows, not data)
-    # header=0  → treat the very next row (row 4) as the column names
     df = pd.read_excel(input_file, skiprows=3, header=0)
 
     # ----------------------------------------------------------
@@ -127,16 +85,6 @@ def convert_fuel_report(input_file: str, output_file: str = None):
 
     # ----------------------------------------------------------
     # STEP 7: Reshape the table from WIDE to LONG format.
-    # Currently the table looks like:
-    #   brand       | DIESEL | PETROL | CNG | ...
-    #   HYUNDAI     |   42   |   10   |  5  | ...
-    #
-    # We want it to look like:
-    #   brand    | fuel   | count
-    #   HYUNDAI  | DIESEL |  42
-    #   HYUNDAI  | PETROL |  10
-    #   HYUNDAI  | CNG    |   5
-    #
     # This is called "melting" — turning column headers into row values.
     # ----------------------------------------------------------
 
@@ -322,6 +270,8 @@ def batch_transform(input_folder: str, output_file: str = "consolidated_fuel_dat
     # pd.concat() stacks multiple DataFrames on top of each other (like stacking spreadsheets)
     # ignore_index=True → renumber all rows from 0 in the merged table
     consolidated = pd.concat(frames, ignore_index=True)
+   
+
 
     # Save the merged table as a single CSV file
     consolidated.to_csv(output_file, index=False)
