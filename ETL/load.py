@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 def run_load(
     csv_path: str,
     table_name: str = "RTA_Maharashtra",
-    batch_size: int = 500
+    batch_size: int = 100
 ):
     load_dotenv()
 

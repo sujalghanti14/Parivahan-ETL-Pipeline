@@ -309,6 +309,6 @@ def batch_transform(input_folder: str, output_file: str = "consolidated_fuel_dat
 
 if __name__ == "__main__":
     batch_transform(
-        input_folder=r"Data",                        # Folder containing all .xlsx files
+        input_folder=r"C:\Users\sujal\Documents\Major Project\Project on System\Data_25",                        # Folder containing all .xlsx files
         output_file="consolidated_fuel_data.csv"     # Name of the final merged output file
     )
